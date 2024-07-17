@@ -88,7 +88,6 @@ function App() {
     <>
       <header>
         <IconButton>
-          {/* <MdMenu /> */}
           <BsList />
         </IconButton>
         <h1>Find what you need</h1>
