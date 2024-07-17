@@ -1,5 +1,5 @@
 import { PropsWithChildren } from "react";
-
+import { BsList, BsArrowDownUp, BsXCircle, BsHeart, BsHeartFill } from "react-icons/bs";
 
 interface IClickable {
   onClick?: () => void;
@@ -16,7 +16,10 @@ const IconButton: React.FC<PropsWithChildren<IClickable>> = ({ children, onClick
 const Sidebar: React.FC<PropsWithChildren> = ({ children }) => {
   return (
     <div>
-      {/* TODO: Add close button */}
+      <IconButton>
+        <BsXCircle />
+      </IconButton>
+
       {children}
     </div>
   )
@@ -64,6 +67,9 @@ const Card: React.FC = () => {
     // TODO: add props with img, title, description, price and fav
     <div>
       <p>I'm a product</p>
+      <IconButton>
+        <BsHeart />
+      </IconButton>
     </div>
   )
 }
@@ -81,9 +87,14 @@ function App() {
   return (
     <>
       <header>
-        <IconButton>Togle Menu Visibility Button</IconButton>
+        <IconButton>
+          {/* <MdMenu /> */}
+          <BsList />
+        </IconButton>
         <h1>Find what you need</h1>
-        <IconButton>Sort Options</IconButton>
+        <IconButton>
+          <BsArrowDownUp />
+        </IconButton>
         <SearchBox />
         {/* TODO: Desktop */}
         {/* <SortSelect /> */}
