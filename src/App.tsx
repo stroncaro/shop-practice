@@ -238,7 +238,7 @@ function App() {
       <main>
         <CardGallery>
           {productState.products.map( (product) =>
-            <Card {...product} />
+            <Card key={product.id} {...product} />
           )}
         </CardGallery>
         <TextButton onClick={() => getProducts()}>Load More</TextButton>
