@@ -15,7 +15,7 @@ const IconButton: React.FC<PropsWithChildren<IClickable>> = ({ children, onClick
 
 interface SidebarProps {
   closeSidebarProc: () => void;
-  setTagProc: React.Dispatch<React.SetStateAction<Tag | null>>;
+  setTagProc: (tag: Tag | null) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ closeSidebarProc, setTagProc }) => {
@@ -79,12 +79,16 @@ const Sidebar: React.FC<SidebarProps> = ({ closeSidebarProc, setTagProc }) => {
   )
 }
 
-const SearchBox: React.FC = () => {
+interface SearchBoxProps {
+  value: string;
+  onInput: React.FormEventHandler<HTMLInputElement>;
+}
+const SearchBox: React.FC<SearchBoxProps> = ({ value, onInput }) => {
   // TODO: set state for search query
   // TODO: validate input while user types
   // TODO: filter cards
   return (
-    <input type="search" />
+    <input type="search" value={value} onInput={onInput} />
   )
 }
 
@@ -139,21 +143,73 @@ const TextButton: React.FC<PropsWithChildren<IClickable>> = ({ children, onClick
 
 type Tag = "clothing" | "corsets" | "dresses" | "girls' dresses" | "gowns" | "men's shirts" | "men's t-shirts" | "skirts" | "suits";
 
+interface ProductState {
+  products: IProduct[];
+  tag: Tag | null;
+  search: string;
+}
+
 function App() {
   const [showSidebar, setShowSidebar] = useState<boolean>(false);
-  const [products, setProducts] = useState<IProduct[]>([]);
-  const [tag, setTag] = useState<Tag | null>(null);
+  const [effectTriggerId, setEffectTriggerId] = useState<number>(0);
+  const [productState, setProductState] = useState<ProductState>({
+    products: [],
+    tag: null,
+    search: '',
+  });
   
+  function triggerProductUpdateAfterStateUpdate() {
+    setEffectTriggerId(effectTriggerId + 1);
+  }
+
+  // TODO: make it possible to delete or clear search
+  /* As it stands now, products are not refreshed when search is small
+     to avoid searching for one or two letters, but avoids triggering
+     refresh when deleting input. Also, clearing with the clear button
+     doesn't refresh the producs */
+  function setSearch(search: string) {
+    if (/^\w*$/.test(search)) {
+      const shouldTriggerProductUpdate = search.length > 2;
+      setProductState({
+        search: search,
+        tag: productState.tag,
+        products: shouldTriggerProductUpdate ? [] : productState.products,
+      });
+      if (shouldTriggerProductUpdate) triggerProductUpdateAfterStateUpdate();
+    }
+  }
+
+  function setTag(tag: Tag | null) {
+    if (tag !== productState.tag) {
+      setProductState({
+        search: productState.search,
+        tag: tag,
+        products: [],
+      });
+      triggerProductUpdateAfterStateUpdate();
+    }
+  }
+
   function getProducts(): void {
     // TODO: add functionality to search by tag once own backend is running
+    const shouldSearch = productState.search.length > 2;
     const limit = 6;
-    const skip = products.length;
-    const url = `https://dummyjson.com/products?limit=${limit}&skip=${skip}&select=thumbnail,title,description,price`;
-    fetch(url)
+    const skip = productState.products.length;
+
+    let query: string = 'https://dummyjson.com/products';
+    query += shouldSearch ? `/search?q=${productState.search}&` : '?';
+    query += `limit=${limit}&`;
+    if (skip) query += `skip=${skip}&`;
+    query += 'select=thumbnail,title,description,price';
+
+    fetch(query)
     .then((response) => response.json())
     .then((data) => {
-      console.log(data.products);
-      setProducts([...products, ...data.products]);
+      setProductState({
+        search: productState.search,
+        tag: productState.tag,
+        products: [...productState.products, ...data.products]
+      });
     })
     .catch((error) => {
       console.log(error);
@@ -162,7 +218,7 @@ function App() {
 
   /* TODO: It appears to trigger twice in dev because of React Strict Mode mounting
   and remounting the component. Check that in production this only happens one time */
-  useEffect(getProducts, [tag]);
+  useEffect(getProducts, [effectTriggerId]);
 
   return (
     <>
@@ -174,7 +230,7 @@ function App() {
         <IconButton>
           <BsArrowDownUp />
         </IconButton>
-        <SearchBox />
+        <SearchBox value={productState.search} onInput={(e) => setSearch((e.target as HTMLInputElement).value)}/>
         {/* TODO: Desktop */}
         {/* <SortSelect /> */}
       </header>
@@ -184,7 +240,7 @@ function App() {
       />}
       <main>
         <CardGallery>
-          {products.map( (product) =>
+          {productState.products.map( (product) =>
             <Card {...product} />
           )}
         </CardGallery>
