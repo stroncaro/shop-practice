@@ -13,8 +13,13 @@ const IconButton: React.FC<PropsWithChildren<IClickable>> = ({ children, onClick
   )
 }
 
-const Sidebar: React.FC = () => {
-  
+interface SidebarProps {
+  closeSidebarProc: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ closeSidebarProc }) => {
+  // TODO: When sidebar is reopened, menu is closed. Should it stay open?
+
   // TODO: clean type defs. Should MenuItem be an enum?
   type MenuItem = 'New In' | 'Clothing' | 'Footwear' | 'Accesories' | 'SALE';
   type SubMenuItem = {
@@ -47,7 +52,7 @@ const Sidebar: React.FC = () => {
 
   return (
     <div>
-      <IconButton>
+      <IconButton onClick={() => closeSidebarProc()}>
         <BsXCircle />
       </IconButton>
 
@@ -121,10 +126,12 @@ const TextButton: React.FC<PropsWithChildren<IClickable>> = ({ children, onClick
 
 
 function App() {
+  const [showSidebar, setShowSidebar] = useState<boolean>(false);
+
   return (
     <>
       <header>
-        <IconButton>
+        <IconButton onClick={() => setShowSidebar(!showSidebar)}>
           <BsList />
         </IconButton>
         <h1>Find what you need</h1>
@@ -135,7 +142,7 @@ function App() {
         {/* TODO: Desktop */}
         {/* <SortSelect /> */}
       </header>
-      <Sidebar />
+      {showSidebar && <Sidebar closeSidebarProc={() => setShowSidebar(false)} />}
       <main>
         <CardGallery>
           {/* Fill with cards */}
