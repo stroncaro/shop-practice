@@ -139,27 +139,30 @@ const TextButton: React.FC<PropsWithChildren<IClickable>> = ({ children, onClick
 
 function App() {
   const [showSidebar, setShowSidebar] = useState<boolean>(false);
-
-
   const [products, setProducts] = useState<IProduct[]>([]);
 
-  /* TODO: It appears to trigger twice in dev because of React Strict Mode mounting
-     and remounting the component. Check that in production this only happens one time */
-  useEffect( () => {
-    const limit = 6;
-    const skip = 0;
-    const url = `https://dummyjson.com/products?limit=${limit}&skip=${skip}&select=thumbnail,title,description,price`;
+  // TODO: /products/category/ lists products of a specific category. Use this to apply filters
+  // NOTE: Get the categories in /products/category-list 
 
+  function getProducts(): void {
+    const limit = 6;
+    const skip = products.length;
+    const url = `https://dummyjson.com/products?limit=${limit}&skip=${skip}&select=thumbnail,title,description,price`;
+  
     fetch(url)
       .then((response) => response.json())
       .then((data) => {
         console.log(data.products);
-        setProducts(data.products);
+        setProducts([...products, ...data.products]);
       })
       .catch((error) => {
         console.log(error);
       });
-  }, []);
+  }
+
+  /* TODO: It appears to trigger twice in dev because of React Strict Mode mounting
+  and remounting the component. Check that in production this only happens one time */
+  useEffect(getProducts, []);
 
   return (
     <>
@@ -182,7 +185,7 @@ function App() {
             <Card {...product} />
           )}
         </CardGallery>
-        <TextButton>LoadMore</TextButton>
+        <TextButton onClick={() => getProducts()}>Load More</TextButton>
       </main>
     </>
   )
