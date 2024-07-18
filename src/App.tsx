@@ -1,4 +1,4 @@
-import { PropsWithChildren, useState } from "react";
+import { PropsWithChildren, useEffect, useState } from "react";
 import { BsList, BsArrowDownUp, BsXCircle, BsHeart, BsHeartFill } from "react-icons/bs";
 
 interface IClickable {
@@ -104,14 +104,26 @@ const CardGallery: React.FC<PropsWithChildren> = ({ children }) => {
   )
 }
 
-const Card: React.FC = () => {
+interface IProduct {
+  id: number;
+  thumbnail: string;
+  title: string;
+  description: string;
+  price: number;
+}
+
+const Card: React.FC<IProduct> = ({ id, thumbnail, title, description, price }) => {
   return (
-    // TODO: add props with img, title, description, price and fav
     <div>
-      <p>I'm a product</p>
-      <IconButton>
-        <BsHeart />
-      </IconButton>
+      <img src={thumbnail} alt={title} />
+      <h1>{title}</h1>
+      <p>{description}</p>
+      <div>
+        <p>€ {price}</p>
+        <IconButton>
+          <BsHeart />
+        </IconButton>
+      </div>
     </div>
   )
 }
@@ -127,6 +139,27 @@ const TextButton: React.FC<PropsWithChildren<IClickable>> = ({ children, onClick
 
 function App() {
   const [showSidebar, setShowSidebar] = useState<boolean>(false);
+
+
+  const [products, setProducts] = useState<IProduct[]>([]);
+
+  /* TODO: It appears to trigger twice in dev because of React Strict Mode mounting
+     and remounting the component. Check that in production this only happens one time */
+  useEffect( () => {
+    const limit = 6;
+    const skip = 0;
+    const url = `https://dummyjson.com/products?limit=${limit}&skip=${skip}&select=thumbnail,title,description,price`;
+
+    fetch(url)
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data.products);
+        setProducts(data.products);
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  }, []);
 
   return (
     <>
@@ -145,8 +178,9 @@ function App() {
       {showSidebar && <Sidebar closeSidebarProc={() => setShowSidebar(false)} />}
       <main>
         <CardGallery>
-          {/* Fill with cards */}
-          <Card />
+          {products.map( (product) =>
+            <Card {...product} />
+          )}
         </CardGallery>
         <TextButton>LoadMore</TextButton>
       </main>
