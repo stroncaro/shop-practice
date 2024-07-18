@@ -114,7 +114,7 @@ interface IProduct {
   price: number;
 }
 
-const Card: React.FC<IProduct> = ({ id, thumbnail, title, description, price }) => {
+const Card: React.FC<IProduct> = ({ thumbnail, title, description, price }) => {
   return (
     <div>
       <img src={thumbnail} alt={title} />
@@ -164,6 +164,9 @@ function App() {
      to avoid searching for one or two letters, but avoids triggering
      refresh when deleting input. Also, clearing with the clear button
      doesn't refresh the producs */
+  
+  // TODO: fix problem where if the user types too fast, the search value could go back to a previous state
+  // TODO: wait until the user stops typing for a little bit before updating products
   function setSearch(search: string) {
     if (/^\w*$/.test(search)) {
       const shouldTriggerProductUpdate = search.length > 2;
