@@ -84,9 +84,6 @@ interface SearchBoxProps {
   onInput: React.FormEventHandler<HTMLInputElement>;
 }
 const SearchBox: React.FC<SearchBoxProps> = ({ value, onInput }) => {
-  // TODO: set state for search query
-  // TODO: validate input while user types
-  // TODO: filter cards
   return (
     <input type="search" value={value} onInput={onInput} />
   )
