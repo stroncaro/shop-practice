@@ -164,6 +164,7 @@ function App() {
 
   // TODO: decouple sorting from fetching products
   const [sort, setSort] = useState<Sort>("none");
+  const [sortedProducts, setSortedProducts] = useState<IProduct[]>([]);
   const SORT_FUNCTIONS: SortFunctionArray = {
     none: null,
     price: (a, b) => a.price - b.price,
@@ -171,15 +172,24 @@ function App() {
       if (a.title > b.title) {
         return 1;
       }
-  
       if (a.title < b.title) {
         return -1;
       }
-  
       return 0;
     }
   }
   
+  useEffect(() => {
+    const productsCopy = products.slice();
+    const sortFunction = SORT_FUNCTIONS[sort];
+
+    if (sortFunction) {
+      productsCopy.sort(sortFunction);
+    }
+
+    setSortedProducts(productsCopy);
+  }, [sort, products]);
+
   const MINIMUM_QUERY_LENGTH = 3;
   const QUERY_UPDATE_DELAY_MS = 500;
   const [query, setQuery] = useState<string>('');
@@ -215,8 +225,6 @@ function App() {
     const limit = PRODUCTS_PER_FETCH;
     const skip = overwrite ? 0 : products.length;
     const shouldCache = !shouldSearch && cache.length < limit + skip;
-    const sortFunction = SORT_FUNCTIONS[sort];
-    const shouldSort = !!sortFunction;
 
     const url = 'https://dummyjson.com/products'
       .concat(shouldSearch ? `/search?q=${query}&` : '?')
@@ -230,7 +238,6 @@ function App() {
         setProducts((prev) => {
           const fetchedValues = data.products;
           const updatedValues = overwrite ? fetchedValues : [...prev, ...fetchedValues];
-          if (shouldSort) updatedValues.sort(sortFunction);
           if (shouldCache) setCache(updatedValues);
           return updatedValues;
         });
@@ -239,7 +246,7 @@ function App() {
         // TODO: do something meaningful with the error
         console.log(error);
       });
-  }, [products, query, sort]);
+  }, [products, query]);
 
   /* TODO: It appears to trigger twice in dev because of React Strict Mode mounting
   and remounting the component. Check that in production this only happens one time */
@@ -273,7 +280,7 @@ function App() {
       />}
       <main>
         <CardGallery>
-          {products.map( (product, i) =>
+          {sortedProducts.map( (product, i) =>
             <Card key={i} {...product} />
           )}
         </CardGallery>
