@@ -1,4 +1,4 @@
-import { PropsWithChildren, useEffect, useState } from "react";
+import { PropsWithChildren, useCallback, useEffect, useState } from "react";
 import { BsList, BsArrowDownUp, BsXCircle, BsHeart, BsHeartFill } from "react-icons/bs";
 
 interface IClickable {
@@ -140,85 +140,67 @@ const TextButton: React.FC<PropsWithChildren<IClickable>> = ({ children, onClick
 
 type Tag = "clothing" | "corsets" | "dresses" | "girls' dresses" | "gowns" | "men's shirts" | "men's t-shirts" | "skirts" | "suits";
 
-interface ProductState {
-  products: IProduct[];
-  tag: Tag | null;
-  search: string;
-}
-
 function App() {
+  /* UI state */
   const [showSidebar, setShowSidebar] = useState<boolean>(false);
-  const [effectTriggerId, setEffectTriggerId] = useState<number>(0);
-  const [productState, setProductState] = useState<ProductState>({
-    products: [],
-    tag: null,
-    search: '',
-  });
   
-  function triggerProductUpdateAfterStateUpdate() {
-    setEffectTriggerId(effectTriggerId + 1);
-  }
+  /* Product state */
+  const PRODUCTS_PER_FETCH = 6;
+  const [products, setProducts] = useState<IProduct[]>([]);
+  const [cache, setCache] = useState<IProduct[]>([]);
+  const [tag, setTag] = useState<Tag | null>(null);
 
-  // TODO: make it possible to delete or clear search
-  /* As it stands now, products are not refreshed when search is small
-     to avoid searching for one or two letters, but avoids triggering
-     refresh when deleting input. Also, clearing with the clear button
-     doesn't refresh the producs */
+  const MINIMUM_QUERY_LENGTH = 3;
+  const [query, setQuery] = useState<string>('');
   
-  // TODO: fix problem where if the user types too fast, the search value could go back to a previous state
   // TODO: wait until the user stops typing for a little bit before updating products
-  function setSearch(search: string) {
-    if (/^\w*$/.test(search)) {
-      const shouldTriggerProductUpdate = search.length > 2;
-      setProductState({
-        search: search,
-        tag: productState.tag,
-        products: shouldTriggerProductUpdate ? [] : productState.products,
-      });
-      if (shouldTriggerProductUpdate) triggerProductUpdateAfterStateUpdate();
+  useEffect(() => {
+    if (query.length >= MINIMUM_QUERY_LENGTH) {
+      fetchProducts(true);
     }
-  }
 
-  function setTag(tag: Tag | null) {
-    if (tag !== productState.tag) {
-      setProductState({
-        search: productState.search,
-        tag: tag,
-        products: [],
-      });
-      triggerProductUpdateAfterStateUpdate();
+    if (query.length == 0 && cache) {
+      console.log('Restoring cache');
+      setProducts(cache);
     }
-  }
+  }, [query]);
 
-  function getProducts(): void {
+  const fetchProducts: (overwrite: boolean) => void = useCallback((overwrite = false) => {
     // TODO: add functionality to search by tag once own backend is running
-    const shouldSearch = productState.search.length > 2;
-    const limit = 6;
-    const skip = productState.products.length;
-
-    let query: string = 'https://dummyjson.com/products';
-    query += shouldSearch ? `/search?q=${productState.search}&` : '?';
-    query += `limit=${limit}&`;
-    if (skip) query += `skip=${skip}&`;
-    query += 'select=thumbnail,title,description,price';
-
-    fetch(query)
-    .then((response) => response.json())
-    .then((data) => {
-      setProductState({
-        search: productState.search,
-        tag: productState.tag,
-        products: [...productState.products, ...data.products]
+    const shouldSearch = query.length >= MINIMUM_QUERY_LENGTH;
+    const limit = PRODUCTS_PER_FETCH;
+    const skip = overwrite ? 0 : products.length;
+    const shouldCache = !shouldSearch && cache.length < limit + skip;
+  
+    const url = 'https://dummyjson.com/products'
+      .concat(shouldSearch ? `/search?q=${query}&` : '?')
+      .concat(`limit=${limit}&`)
+      .concat(skip ? `skip=${skip}&` : '')
+      .concat('select=thumbnail,title,description,price');
+  
+    fetch(url)
+      .then((response) => response.json())
+      .then((data) => {
+        if (overwrite) {
+          if (shouldCache) setCache(data.products);
+          setProducts(data.products);
+        } else {
+          setProducts(prev => {
+            const val = [...prev, ...data.products];
+            setCache(val);
+            return val;
+          });
+        }
+      })
+      .catch((error) => {
+        // TODO: do something meaningful with the error
+        console.log(error);
       });
-    })
-    .catch((error) => {
-      console.log(error);
-    });
-  }
+  }, [products, query]);
 
   /* TODO: It appears to trigger twice in dev because of React Strict Mode mounting
   and remounting the component. Check that in production this only happens one time */
-  useEffect(getProducts, [effectTriggerId]);
+  useEffect(() => fetchProducts(true), []);
 
   return (
     <>
@@ -230,7 +212,7 @@ function App() {
         <IconButton>
           <BsArrowDownUp />
         </IconButton>
-        <SearchBox value={productState.search} onInput={(e) => setSearch((e.target as HTMLInputElement).value)}/>
+        <SearchBox value={query} onInput={(e) => setQuery((e.target as HTMLInputElement).value)}/>
         {/* TODO: Desktop */}
         {/* <SortSelect /> */}
       </header>
@@ -240,11 +222,11 @@ function App() {
       />}
       <main>
         <CardGallery>
-          {productState.products.map( (product) =>
-            <Card key={product.id} {...product} />
+          {products.map( (product, i) =>
+            <Card key={i} {...product} />
           )}
         </CardGallery>
-        <TextButton onClick={() => getProducts()}>Load More</TextButton>
+        <TextButton onClick={() => fetchProducts(false)}>Load More</TextButton>
       </main>
     </>
   )
