@@ -80,12 +80,11 @@ const Sidebar: React.FC<SidebarProps> = ({ closeSidebarProc, setTagProc }) => {
 }
 
 interface SearchBoxProps {
-  value: string;
   onInput: React.FormEventHandler<HTMLInputElement>;
 }
-const SearchBox: React.FC<SearchBoxProps> = ({ value, onInput }) => {
+const SearchBox: React.FC<SearchBoxProps> = ({ onInput }) => {
   return (
-    <input type="search" value={value} onInput={onInput} />
+    <input type="search" onInput={onInput} />
   )
 }
 
@@ -151,9 +150,24 @@ function App() {
   const [tag, setTag] = useState<Tag | null>(null);
 
   const MINIMUM_QUERY_LENGTH = 3;
+  const QUERY_UPDATE_DELAY_MS = 500;
   const [query, setQuery] = useState<string>('');
-  
-  // TODO: wait until the user stops typing for a little bit before updating products
+
+  let queryTimeout: number;
+  const debounceQuery: (val: string) => void = (val) => {
+    clearTimeout(queryTimeout);
+
+    const shouldWait = val.length > 0;
+
+    if (shouldWait) {
+      queryTimeout = setTimeout(() => {
+        setQuery(val);
+      }, QUERY_UPDATE_DELAY_MS);
+    } else {
+      setQuery(val);
+    }
+  };
+
   useEffect(() => {
     if (query.length >= MINIMUM_QUERY_LENGTH) {
       fetchProducts(true);
@@ -207,7 +221,7 @@ function App() {
         <IconButton>
           <BsArrowDownUp />
         </IconButton>
-        <SearchBox value={query} onInput={(e) => setQuery((e.target as HTMLInputElement).value)}/>
+        <SearchBox onInput={(e) => debounceQuery((e.target as HTMLInputElement).value)}/>
         {/* TODO: Desktop */}
         {/* <SortSelect /> */}
       </header>
