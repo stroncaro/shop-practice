@@ -160,7 +160,6 @@ function App() {
     }
 
     if (query.length == 0 && cache) {
-      console.log('Restoring cache');
       setProducts(cache);
     }
   }, [query]);
@@ -181,16 +180,12 @@ function App() {
     fetch(url)
       .then((response) => response.json())
       .then((data) => {
-        if (overwrite) {
-          if (shouldCache) setCache(data.products);
-          setProducts(data.products);
-        } else {
-          setProducts(prev => {
-            const val = [...prev, ...data.products];
-            setCache(val);
-            return val;
-          });
-        }
+        setProducts((prev) => {
+          const fetchedValues = data.products;
+          const updatedValues = overwrite ? fetchedValues : [...prev, ...fetchedValues];
+          if (shouldCache) setCache(updatedValues);
+          return updatedValues;
+        });
       })
       .catch((error) => {
         // TODO: do something meaningful with the error
